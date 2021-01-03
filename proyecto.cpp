@@ -12,7 +12,7 @@
 using namespace std;
 int T;
 int INTERVALO = 1;
-string instancia ="Carleton91";//"EdHEC92";//"St.Andrews83";//"Carleton91";
+string instancia ="St.Andrews83";//"EdHEC92";//"St.Andrews83";//"Carleton91";
 int max_iter1 = 3500;
 int max_iter2 = 5;
 float alpha = 0.8;
@@ -466,6 +466,7 @@ auto simulatedAnnealing(int **C, int E, int S){
         cout << i<<" ";
     }
     cout<<endl;
+    cout<<"Penalización Promedio: "<<calidad(sc,C,E,S)/S<<endl;
     cout<<"Calidad: "<<calidad(sc,C,E,S)<<endl;
     std::vector<int> sb = sc;
     std::vector<int> aux;
@@ -560,7 +561,7 @@ int main(int argc, char const *argv[])
         cout << i<<" ";
     }
     cout<<endl;
-    cout<<"Penalizacion: "<<calidad(y,conflictMatrix,E,S)/S<<endl;
+    cout<<"Penalizacion Promedio solición encontrada: "<<calidad(y,conflictMatrix,E,S)/S<<endl;
     
 
     /*for(int i=0;i<E;i++){
@@ -576,7 +577,7 @@ int main(int argc, char const *argv[])
         cout << i<<" ";
     }
     cout<<endl;
-    cout<<"Penalizacion: "<<calidad(z,conflictMatrix,E,S)/S<<endl;
+    cout<<"Penalizacion Promedio sol. conocida: "<<calidad(z,conflictMatrix,E,S)/S<<endl;
 
     return 0;
 }
