@@ -8,15 +8,24 @@
 #include<utility>
 #include<math.h>
 #include<time.h>
+#include<sstream>
+#include<iomanip>
 
 using namespace std;
 int T;
 int INTERVALO = 1;
-string instancia ="St.Andrews83";//"EdHEC92";//"St.Andrews83";//"Carleton91";
 int max_iter1 = 3500;
 int max_iter2 = 5;
-float alpha = 0.8;
+float alpha = 0.9;
 int maxT=100;
+string instancia ="Carleton91";//"EdHEC92";//"St.Andrews83";//"Carleton91";//"LSE91";//"TorontoE92";//"Trent92";//"YorkMills83"
+//EdHEC92 140.322 [s]
+//St.Andrews83 640.731 [s]
+//LSE91 12112.9 [s]
+//Carleton91 9hr 20min aprox
+//TorontoE92 1599.35 [s]
+//Trent92 3296.26 [s]
+//YorkMills83 1083.37 [s]
 
 void getSE(int *maxStu,int *maxE){
     std::ifstream archivo;
@@ -416,7 +425,6 @@ auto solucionCandidata8(std::vector<int> x, int** C, int E){
 int penalizacion(int i, int j){
     int intervalo = abs(i-j);
     int exp;
-    int sol;
     if (1<=intervalo && intervalo<=5){
         exp = 5- intervalo;
         return pow(2,exp);
@@ -461,13 +469,16 @@ auto simulatedAnnealing(int **C, int E, int S){
     int contador1, contador2=0;
     bool cond1=true,cond2=true, fallo=false;
     std::vector<int> sc = solucionAleatoria2(E, C);
-    cout<<"solución inicial: "<<endl;
+    cout<<"Solución inicial: "<<endl;
+    int bloqueMax=-1;
     for (auto i : sc) {
-        cout << i<<" ";
+        cout << i-1<<" ";
+        if(i>bloqueMax) bloqueMax=i;
     }
     cout<<endl;
-    cout<<"Penalización Promedio: "<<calidad(sc,C,E,S)/S<<endl;
-    cout<<"Calidad: "<<calidad(sc,C,E,S)<<endl;
+    cout<<"N° de Timeslots Solución Inicial: "<<bloqueMax<<endl;
+    cout<<"Penalización Promedio Solución Inicial: "<<calidad(sc,C,E,S)/S<<endl;
+    cout<<"Calidad Solución Inicial: "<<calidad(sc,C,E,S)<<endl;
     std::vector<int> sb = sc;
     std::vector<int> aux;
     
@@ -505,32 +516,53 @@ auto simulatedAnnealing(int **C, int E, int S){
             if(contador1%500==0) cout<<"contador1: "<<contador1<<endl;
             if(contador1==max_iter1) cond1 = false;
         } while (cond1 && !fallo);
-        if(Temp<10) {
-            Temp = maxT;
-            cout<<"Reinicio de temperatura."<<endl;
+        if(Temp<=5) {
+            cond2 = false;
+            cout<<"Fin del SA por alcanzar Temperatura mínima."<<endl;
         }
         else Temp = alpha*Temp;
         cout<<"Temperatura: "<<Temp<<endl;
         if(calidad(sb,C,E,S)==calidad(aux,C,E,S)) contador2++;
         cout<<"contador2: "<<contador2<<endl;
-        if(contador2==max_iter2) cond2=false;
+        if(contador2==max_iter2) {
+            cout<<"Fin del SA por no mejorar en "<<max_iter2<<" iteraciones seguidas."<<endl;
+            cond2=false;
+        }
     } while (cond2 && !fallo);
     
     return std::make_pair(sb,calidad(sb,C,E,S));
 }
 
-std::vector<int> solucionReal(){
-    std::ifstream archivo;
-    archivo.open("./instances/"+instancia+".sol",ios::in);
-    string a;
-    int b;
-    std::vector<int> x;
-    while(archivo>>a>>b)
-    {
-        x.push_back(b);
+void escribirSol(std::vector<int> v){
+    ofstream txtOut;
+    txtOut.open("./soluciones/"+instancia+".sol");//,ios::app);
+    std::vector<std::stringstream> examenes (v.size());
+    std::stringstream id;
+    int aux;
+    for (int i=0;i<v.size();i++) {
+        aux = i;
+        examenes[i] << std::setw(4) << std::setfill('0') << aux+1;
+        txtOut << examenes[i].str()<<"\t"<<v[i]<<"\n";
     }
-    archivo.close();
-    return x;
+    txtOut.close();
+}
+
+void escribirRes(std::vector<int> v){
+    ofstream txtOut;
+    txtOut.open("./soluciones/"+instancia+".res");//,ios::app);
+    int max=-1;
+    for (int i=0;i<v.size();i++) {
+        if(v[i]>max) max=v[i];
+    }
+    txtOut << max+1<<"\n";
+    txtOut.close();
+}
+
+void escribirPen(std::vector<int> v, int **C, int E, int S){
+    ofstream txtOut;
+    txtOut.open("./soluciones/"+instancia+".pen");//,ios::app);
+    txtOut <<calidad(v,C,E,S)/S<<"\n";
+    txtOut.close();
 }
 
 int main(int argc, char const *argv[])
@@ -553,31 +585,23 @@ int main(int argc, char const *argv[])
 
     auto sol_final = simulatedAnnealing(conflictMatrix,E,S);
     
-    cout<<"Tiempo SA: "<<(double)(clock() - inicio)/CLOCKS_PER_SEC<<" [s]"<<endl;
+    cout<<"Tiempo Ejecución SA: "<<(double)(clock() - inicio)/CLOCKS_PER_SEC<<" [s]"<<endl;
+    
     std::vector<int> y = sol_final.first;
 
     for(int i=0;i<y.size();i++) y.at(i)-=1;
+    cout<<"Solución Final: "<<endl;
+    int bloqueMax=-1;
     for (auto i : y) {
-        cout << i<<" ";
+        cout << i <<" ";
+        if(i>bloqueMax) bloqueMax=i;
     }
     cout<<endl;
-    cout<<"Penalizacion Promedio solición encontrada: "<<calidad(y,conflictMatrix,E,S)/S<<endl;
-    
-
-    /*for(int i=0;i<E;i++){
-        for(int j=0;j<E;j++){
-            cout<<conflictMatrix[i][j]<<" ";
-        }
-        cout<<endl;
-    }*/
-
-    cout<<"Solucion Conocida:"<<endl;
-    std::vector<int> z = solucionReal();
-    for (auto i : z) {
-        cout << i<<" ";
-    }
-    cout<<endl;
-    cout<<"Penalizacion Promedio sol. conocida: "<<calidad(z,conflictMatrix,E,S)/S<<endl;
-
+    cout<<"N° de Timeslots Solución Final: "<<bloqueMax+1<<endl;
+    cout<<"Penalización Promedio Solución Final: "<<calidad(y,conflictMatrix,E,S)/S<<endl;
+    escribirSol(y);
+    escribirRes(y);
+    escribirPen(y,conflictMatrix,E,S);
+    cout<<"Archivos escritos con éxito."<<endl;
     return 0;
 }

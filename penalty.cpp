@@ -9,7 +9,7 @@
 using namespace std;
 int T;
 int INTERVALO = 1;
-string instancia ="St.Andrews83";//"EdHEC92";//"St.Andrews83";//"Carleton91";
+string instancia ="Prueba1";//"EdHEC92";//"St.Andrews83";//"Carleton91";
 int max_iter1 = 3500;
 int max_iter2 = 5;
 float alpha = 0.8;
@@ -120,6 +120,29 @@ std::vector<int> solucionReal(){
     return x;
 }
 
+float calidad2(std::vector<int> x, int** SE, int E, int S){
+    std::vector<int> fila[S];
+    for(int i=0;i<S;i++){
+        for(int j=0;j<E;j++){
+            if(SE[i][j]==1)
+                fila[i].push_back(j);
+        }
+    }
+    int largo;
+    int suma=0;
+    for(int k=0;k<S;k++){
+        largo = fila[k].size();
+        if (largo>1){
+            for(int i =0;i<largo-1;i++){
+                for(int j=i+1;j<largo;j++){
+                    suma += penalizacion( x[fila[k][i]],x[fila[k][j]]);
+                }
+            }
+        }
+    }
+    return (float)suma/S;
+}
+
 int main(int argc, char const *argv[])
 {
     int S,E;
@@ -150,7 +173,8 @@ int main(int argc, char const *argv[])
         cout << i<<" ";
     }
     cout<<endl;
-    cout<<"Penalizacion Promedio: "<<calidad(z,conflictMatrix,E,S)/S<<endl;
+    //cout<<"Penalizacion Promedio: "<<calidad(z,conflictMatrix,E,S)/S<<endl;
+    cout<<"Penalizacion Promedio: "<<calidad2(z,matrizSE,E,S)<<endl;
 
     return 0;
 }
