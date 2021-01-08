@@ -12,20 +12,11 @@
 #include<iomanip>
 
 using namespace std;
-int T;
-int INTERVALO = 1;
-int max_iter1 = 3500;
+
+int max_iter1 = 3000;
 int max_iter2 = 5;
-float alpha = 0.9;
-int maxT=100;
-string instancia ="Carleton91";//"EdHEC92";//"St.Andrews83";//"Carleton91";//"LSE91";//"TorontoE92";//"Trent92";//"YorkMills83"
-//EdHEC92 140.322 [s]
-//St.Andrews83 640.731 [s]
-//LSE91 12112.9 [s]
-//Carleton91 9hr 20min aprox
-//TorontoE92 1599.35 [s]
-//Trent92 3296.26 [s]
-//YorkMills83 1083.37 [s]
+float alpha = 0.85;
+string instancia ="EdHEC92";//"EdHEC92";//"St.Andrews83";//"Carleton91";//"LSE91";//"TorontoE92";//"Trent92";//"YorkMills83"
 
 void getSE(int *maxStu,int *maxE){
     std::ifstream archivo;
@@ -105,27 +96,7 @@ bool checkeo(std::vector<int> x, int **C, int E){
     else return false;
 }
 
-int numeroAleatorio (int max){
-    if (max <T) return (std::rand()%(max+INTERVALO)+1);
-    else return (std::rand()%T+1);
-}
-
-std::vector<int> solucionAleatoria(int E, int** C){
-    std::vector<int> v(E,0);
-    bool verificar;
-    int aux, max=1;
-    for(int i=0; i< v.size();i++){
-        do{
-            aux = numeroAleatorio(max);
-            v.at(i)= aux;
-            verificar = checkeo(v,C,E);
-        }while(!verificar);
-        if(max<aux) max = aux;
-    }
-    return v;
-}
-
-std::vector<int> solucionAleatoria2(int E, int** C){
+std::vector<int> solucionInicial(int E, int** C){
     std::vector<int> v(E,0);
     bool verificar,hecho;
     int max,pos, bloque;
@@ -161,17 +132,8 @@ std::vector<int> solucionAleatoria2(int E, int** C){
     return v;
 }
 
-void escribir(std::vector<int> v){
-    ofstream txtOut;
-    txtOut.open("soluciones.txt",ios::app);
-    txtOut<<"Nuevo:\n";
-    for (auto i : v) {
-        txtOut << i<<"\n";
-    }
-    txtOut.close();
-}
-
-auto solucionCandidata1(std::vector<int> x, int** C, int E){
+// Movimiento "+1-1" a cada elemento del vector uno por uno.
+auto movimiento1(std::vector<int> x, int** C, int E){
     std::vector<std::vector<int>> vector_soluciones; //vecindario factible de x
     std::vector<int> aux;
     int min=10000000, max=0;
@@ -206,8 +168,8 @@ auto solucionCandidata1(std::vector<int> x, int** C, int E){
     }
 }
 
-//Random y vecinos a 1 distancia.
-auto solucionCandidata2(std::vector<int> x, int** C, int E){
+//Movimiento: uno por uno, cada elemento del vector solución, se le asigna un timeslot al azar.
+auto movimiento2(std::vector<int> x, int** C, int E){
     std::vector<std::vector<int>> vector_soluciones; //vecindario factible de x
     std::vector<int> aux;
     int min=10000000, max=0,aux2,pos;
@@ -220,20 +182,7 @@ auto solucionCandidata2(std::vector<int> x, int** C, int E){
         do{
             aux[i]= std::rand()%max+1;
         }while(aux[i]<min);
-        
         if(checkeo(aux,C,E)) vector_soluciones.push_back(aux);
-        if(aux[i]==min){
-            aux[i]=aux[i]+1;
-            if(checkeo(aux,C,E)) vector_soluciones.push_back(aux);
-        }
-        else if(aux[i]==max){
-            aux[i]=aux[i]-1;
-            if(checkeo(aux,C,E)) vector_soluciones.push_back(aux);
-        }
-        else{
-            aux[i]=aux[i]-1;
-            if(checkeo(aux,C,E)) vector_soluciones.push_back(aux);
-        }
     }
     int L = vector_soluciones.size();
     if(L>0){
@@ -245,33 +194,9 @@ auto solucionCandidata2(std::vector<int> x, int** C, int E){
     }
 }
 
-auto solucionCandidata3(std::vector<int> x, int** C, int E){
-    std::vector<std::vector<int>> vector_soluciones; //vecindario factible de x
-    std::vector<int> aux;
-    int min=10000000, max=0,aux2,pos;
-    for(auto i: x){
-        if (i<min) min = i;
-        if(i>max) max = i;
-    }
-    for (int i=0; i< x.size();i++){
-        aux = x;
-        for(int j=min; j<max;j++){
-            aux[i]=j;
-            if(checkeo(aux,C,E)) vector_soluciones.push_back(aux);
-        }
-    }
-    int L = vector_soluciones.size();
-    if(L>0){
-        return std::make_pair(true,vector_soluciones[std::rand()%L]);
-    }
-    else{
-        cout<<"No hubo vecindario factible."<<endl;
-        return std::make_pair(false,x);
-    }
-}
-
-//SWAP
-auto solucionCandidata4(std::vector<int> x, int** C, int E){
+//Movimiento: uno por uno, cada elemento del vector solución, se le realiza
+//un SWAP con otro elemento al azar del vector solución.
+auto movimiento3(std::vector<int> x, int** C, int E){
     std::vector<std::vector<int>> vector_soluciones; //vecindario factible de x
     std::vector<int> aux;
     int aux2,num;
@@ -295,43 +220,11 @@ auto solucionCandidata4(std::vector<int> x, int** C, int E){
     }
 }
 
-//SWAP MAX y SWAP-1
-auto solucionCandidata5(std::vector<int> x, int** C, int E){
-    std::vector<std::vector<int>> vector_soluciones; //vecindario factible de x
-    std::vector<int> y,aux;
-    int min=10000000, max=0,aux2,pos;
-    for(int i=0; i<x.size(); i++){
-        if (x[i]<min) min = x[i];
-        if(x[i]>max) {
-            max = x[i];
-            pos = i;
-        }
-    }
-    
-    for(int i=0;i<x.size();i++){
-        aux = x;
-        aux2= aux[i];
-        aux[i]= aux[pos];
-        aux[pos]= aux2;
-        if(checkeo(aux,C,E)) vector_soluciones.push_back(aux);
-        if(aux[i]>1) {
-            aux[i]= aux[i]-1;
-            if(checkeo(aux,C,E)) vector_soluciones.push_back(aux);
-        }
-    }
-    
-    int L = vector_soluciones.size();
-    if(L>0){
-        return std::make_pair(true,vector_soluciones[std::rand()%L]);
-    }
-    else{
-        cout<<"No hubo vecindario factible."<<endl;
-        return std::make_pair(false,x);
-    }
-}
 
-//SWAP random
-auto solucionCandidata6(std::vector<int> x, int** C, int E){
+//Movimiento: uno por uno, cada elemento del vector solución,SWAP con
+//otro elemento al azar del vector solución, donde, además, se reemplaza su valor por un
+//timeslot al azar
+auto movimiento4(std::vector<int> x, int** C, int E){
     std::vector<std::vector<int>> vector_soluciones; //vecindario factible de x
     std::vector<int> aux;
     int min=10000000, max=0,aux2,pos,num;
@@ -344,7 +237,7 @@ auto solucionCandidata6(std::vector<int> x, int** C, int E){
     }
     pos = std::rand()%E;
     do{
-        num = std::rand()%max+1;//std::rand()%max+1;
+        num = std::rand()%max+1;
     }while(num<min);
 
     for(int i=0;i<x.size();i++){
@@ -366,62 +259,6 @@ auto solucionCandidata6(std::vector<int> x, int** C, int E){
     }
 }
 
-//Random unico
-auto solucionCandidata7(std::vector<int> x, int** C, int E){
-    std::vector<std::vector<int>> vector_soluciones; //vecindario factible de x
-    std::vector<int> aux;
-    int min=10000000, max=0,aux2,pos;
-    for(auto i: x){
-        if (i<min) min = i;
-        if(i>max) max = i;
-    }
-    for (int i=0; i< x.size();i++){
-        aux = x;
-        do{
-            aux[i]= std::rand()%max+1;
-        }while(aux[i]<min);
-        if(checkeo(aux,C,E)) vector_soluciones.push_back(aux);
-    }
-    int L = vector_soluciones.size();
-    if(L>0){
-        return std::make_pair(true,vector_soluciones[std::rand()%L]);
-    }
-    else{
-        cout<<"No hubo vecindario factible."<<endl;
-        return std::make_pair(false,x);
-    }
-}
-
-//doble random
-auto solucionCandidata8(std::vector<int> x, int** C, int E){
-    std::vector<std::vector<int>> vector_soluciones; //vecindario factible de x
-    std::vector<int> aux;
-    int min=10000000, max=0,aux2,pos;
-    for(auto i: x){
-        if (i<min) min = i;
-        if(i>max) max = i;
-    }
-    int num1, num2;
-    for (int i=0; i< 2*x.size();i++){
-        aux = x;
-        num1 = std::rand()%x.size();
-        num2 = std::rand()%x.size();
-        do{
-            aux[num1]= std::rand()%max+1;
-            aux[num2]= std::rand()%max+1;
-        }while(aux[num1]<min && aux[num2]<min);
-        if(checkeo(aux,C,E)) vector_soluciones.push_back(aux);
-    }
-    int L = vector_soluciones.size();
-    if(L>0){
-        return std::make_pair(true,vector_soluciones[std::rand()%L]);
-    }
-    else{
-        cout<<"No hubo vecindario factible."<<endl;
-        return std::make_pair(false,x);
-    }
-}
-
 int penalizacion(int i, int j){
     int intervalo = abs(i-j);
     int exp;
@@ -432,12 +269,6 @@ int penalizacion(int i, int j){
 }
 
 float calidad(std::vector<int> x, int** C, int E, int S){
-    /*int min=1000000, max=0;
-    for(auto i: x){
-        if (i<min) min = i;
-        if(i>max) max = i;
-    }
-    int delta = max-min;*/
     int suma = 0;
     for(int i=0;i<x.size()-1;i++){
         for(int j=i+1;j<x.size();j++){
@@ -452,23 +283,17 @@ bool evaluacion(std::vector<int> sn, std::vector<int> sc, int Temp, int** C, int
     float c_sc = calidad(sc,C,E,S);
     float delta = c_sn-c_sc;
     float aleatorio = drand48();
-    if(delta<0) {
-        //cout<<"Aceptó una mejor"<<endl;
-        return true;
-    }
-    else if (exp(-delta/Temp)>aleatorio){ 
-        //cout<<"Aceptó una peor."<<endl;
-        return true;
-    }
+    if(delta<0) return true;
+    else if (exp(-delta/Temp)>aleatorio) return true;
     else return false;
 }
 
 auto simulatedAnnealing(int **C, int E, int S){
-    int t=0;
-    int Temp=maxT;
+
+    int Temp=100;
     int contador1, contador2=0;
     bool cond1=true,cond2=true, fallo=false;
-    std::vector<int> sc = solucionAleatoria2(E, C);
+    std::vector<int> sc = solucionInicial(E, C);
     cout<<"Solución inicial: "<<endl;
     int bloqueMax=-1;
     for (auto i : sc) {
@@ -489,18 +314,10 @@ auto simulatedAnnealing(int **C, int E, int S){
         aux = sb;
         do
         {
-            //auto sn = solucionCandidata1(sc,C,E);
-            //auto sn = solucionCandidata2(sc,C,E);
-            //auto sn = solucionCandidata3(sc,C,E);
-            //auto sn = solucionCandidata4(sc,C,E);
-            //auto sn = solucionCandidata5(sc,C,E);
-            auto sn = solucionCandidata6(sc,C,E);
-            //auto sn = solucionCandidata7(sc,C,E);
-            //auto sn = solucionCandidata8(sc,C,E);
-            /*for (auto i : sn.second) {
-                cout << i<<" ";
-            }
-            cout<<endl;*/
+            //auto sn = movimiento1(sc,C,E);
+            //auto sn = movimiento2(sc,C,E);
+            //auto sn = movimiento3(sc,C,E);
+            auto sn = movimiento4(sc,C,E);
             if(!sn.first) {
                 fallo=true;
                 cout<<"falló en encontrar vecindad"<<endl;
@@ -511,7 +328,6 @@ auto simulatedAnnealing(int **C, int E, int S){
                 cout<<"Mejoró con calidad: "<<calidad(sb,C,E,S)<<endl;
                 contador2=0;
             }
-            
             contador1++;
             if(contador1%500==0) cout<<"contador1: "<<contador1<<endl;
             if(contador1==max_iter1) cond1 = false;
@@ -529,7 +345,6 @@ auto simulatedAnnealing(int **C, int E, int S){
             cond2=false;
         }
     } while (cond2 && !fallo);
-    
     return std::make_pair(sb,calidad(sb,C,E,S));
 }
 
@@ -549,7 +364,7 @@ void escribirSol(std::vector<int> v){
 
 void escribirRes(std::vector<int> v){
     ofstream txtOut;
-    txtOut.open("./soluciones/"+instancia+".res");//,ios::app);
+    txtOut.open("./soluciones/"+instancia+".res");
     int max=-1;
     for (int i=0;i<v.size();i++) {
         if(v[i]>max) max=v[i];
@@ -560,8 +375,14 @@ void escribirRes(std::vector<int> v){
 
 void escribirPen(std::vector<int> v, int **C, int E, int S){
     ofstream txtOut;
-    txtOut.open("./soluciones/"+instancia+".pen");//,ios::app);
+    txtOut.open("./soluciones/"+instancia+".pen");
     txtOut <<calidad(v,C,E,S)/S<<"\n";
+    txtOut.close();
+}
+void escribirSeg(double sec){
+    ofstream txtOut;
+    txtOut.open("./soluciones/"+instancia+".seg");
+    txtOut <<sec<<"\n";
     txtOut.close();
 }
 
@@ -571,7 +392,6 @@ int main(int argc, char const *argv[])
     std::srand(unsigned(std::time(nullptr)));
     int S,E;
     getSE(&S,&E);
-    T=E;
 
     int ** matrizSE = new int*[S];
     for (int i = 0; i<S;i++)
@@ -584,8 +404,10 @@ int main(int argc, char const *argv[])
     matrixC(matrizSE, conflictMatrix, S, E);
 
     auto sol_final = simulatedAnnealing(conflictMatrix,E,S);
+
+    double segundos = (double)(clock() - inicio)/CLOCKS_PER_SEC;
     
-    cout<<"Tiempo Ejecución SA: "<<(double)(clock() - inicio)/CLOCKS_PER_SEC<<" [s]"<<endl;
+    cout<<"Tiempo Ejecución SA: "<<segundos<<" [s]"<<endl;
     
     std::vector<int> y = sol_final.first;
 
@@ -602,6 +424,7 @@ int main(int argc, char const *argv[])
     escribirSol(y);
     escribirRes(y);
     escribirPen(y,conflictMatrix,E,S);
+    escribirSeg(segundos);
     cout<<"Archivos escritos con éxito."<<endl;
     return 0;
 }
