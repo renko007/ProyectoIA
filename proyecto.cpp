@@ -398,7 +398,7 @@ void escribirPen(std::vector<int> v, int **C, int E, int S){
 }
 
 //Función para crear el .seg con el tiempo en segundos que demoró en procesarse el simulatedAnnealing.
-//Este archivo no lo pidieron, pero lo quise agregar igual.
+//Este archivo no lo pidieron, pero lo cree para realizar los experimentos.
 void escribirSeg(double sec){
     ofstream txtOut;
     txtOut.open("./soluciones/"+instancia+".seg");
@@ -449,7 +449,7 @@ int main(int argc, char const *argv[])
     escribirSol(y);
     escribirRes(y);
     escribirPen(y,conflictMatrix,E,S);
-    escribirSeg(segundos);
+    //escribirSeg(segundos);
     cout<<"Archivos escritos con éxito."<<endl;
     return 0;
 }
