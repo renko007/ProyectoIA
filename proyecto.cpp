@@ -18,6 +18,7 @@ int max_iter2 = 5;
 float alpha = 0.85;
 string instancia ="EdHEC92";//"EdHEC92";//"St.Andrews83";//"Carleton91";//"LSE91";//"TorontoE92";//"Trent92";//"YorkMills83"
 
+//Función para obtener la cantidad S de estudiantes y la cantidad E de exámenes.
 void getSE(int *maxStu,int *maxE){
     std::ifstream archivo;
     archivo.open("./instances/"+instancia+".stu",ios::in);
@@ -35,6 +36,7 @@ void getSE(int *maxStu,int *maxE){
     archivo.close();
 }
 
+//Función para crear la matriz de Estudiantes x Exámenes donde SE_ij = 1 si el estudiante i rinde el examen j, 0 si no.
 void matrixSE(int **SE, int S, int E){
     for(int i=0;i<S;i++){
         for(int j=0;j<E;j++){
@@ -54,6 +56,7 @@ void matrixSE(int **SE, int S, int E){
     archivo.close();
 }
 
+//Función para crear la matriz de conflictos entre examenes donde C_ij = k si k alumnos tienen que rendir examenes i y j.
 void matrixC(int **matrizSE, int **C, int S,int E){
     std::vector<int> fila[S];
     for(int i=0;i<S;i++){
@@ -83,6 +86,7 @@ void matrixC(int **matrizSE, int **C, int S,int E){
     }
 }
 
+//Función que verifica que una solución x, examenes en conflictos no tengan el mismo timeslot
 bool checkeo(std::vector<int> x, int **C, int E){
     int suma = 0;
     for(int i=0; i <E-1;i++){
@@ -96,6 +100,9 @@ bool checkeo(std::vector<int> x, int **C, int E){
     else return false;
 }
 
+//Función para crear la solución inicial.
+//Se realiza tomando la decisión greedy de que al examen con más conflictos se le asigna
+//un timeslot lo más bajo posible
 std::vector<int> solucionInicial(int E, int** C){
     std::vector<int> v(E,0);
     bool verificar,hecho;
@@ -128,7 +135,6 @@ std::vector<int> solucionInicial(int E, int** C){
             }while(!verificar);
         }
     }
-    cout<<"sol inicial pasa?: "<<checkeo(v,C,E)<<endl;
     return v;
 }
 
@@ -141,7 +147,7 @@ auto movimiento1(std::vector<int> x, int** C, int E){
         if (i<min) min = i;
         if(i>max) max = i;
     }
-    for (int i=0; i< x.size();i++){
+    for (int i=0; i< (int)x.size();i++){
         aux = x;
         if(x[i]==min){
             aux[i]=aux[i]+1;
@@ -172,12 +178,12 @@ auto movimiento1(std::vector<int> x, int** C, int E){
 auto movimiento2(std::vector<int> x, int** C, int E){
     std::vector<std::vector<int>> vector_soluciones; //vecindario factible de x
     std::vector<int> aux;
-    int min=10000000, max=0,aux2,pos;
+    int min=10000000, max=0;
     for(auto i: x){
         if (i<min) min = i;
         if(i>max) max = i;
     }
-    for (int i=0; i< x.size();i++){
+    for (int i=0; i< (int)x.size();i++){
         aux = x;
         do{
             aux[i]= std::rand()%max+1;
@@ -201,7 +207,7 @@ auto movimiento3(std::vector<int> x, int** C, int E){
     std::vector<int> aux;
     int aux2,num;
     num = std::rand()%E;
-    for(int i=0;i<x.size();i++){
+    for(int i=0; i<(int)x.size();i++){
         aux = x;
         aux2= aux[i];
         aux[i]= aux[num];
@@ -228,8 +234,7 @@ auto movimiento4(std::vector<int> x, int** C, int E){
     std::vector<std::vector<int>> vector_soluciones; //vecindario factible de x
     std::vector<int> aux;
     int min=10000000, max=0,aux2,pos,num;
-    float aleatorio = drand48();
-    for(int i=0; i<x.size(); i++){
+    for(int i=0; i<(int)x.size(); i++){
         if (x[i]<min) min = x[i];
         if(x[i]>max) {
             max = x[i];
@@ -240,7 +245,7 @@ auto movimiento4(std::vector<int> x, int** C, int E){
         num = std::rand()%max+1;
     }while(num<min);
 
-    for(int i=0;i<x.size();i++){
+    for(int i=0;i<(int)x.size();i++){
         aux = x;
         aux2= aux[i];
         aux[i]= num;
@@ -259,6 +264,7 @@ auto movimiento4(std::vector<int> x, int** C, int E){
     }
 }
 
+//Función que calcula la penalización entre dos timeslots.
 int penalizacion(int i, int j){
     int intervalo = abs(i-j);
     int exp;
@@ -268,16 +274,20 @@ int penalizacion(int i, int j){
     }else return 0;
 }
 
+//Función de evaluación, que mide la penalización total en una solución x.
 float calidad(std::vector<int> x, int** C, int E, int S){
     int suma = 0;
-    for(int i=0;i<x.size()-1;i++){
-        for(int j=i+1;j<x.size();j++){
+    for(int i=0;i<(int)x.size()-1;i++){
+        for(int j=i+1;j<(int)x.size();j++){
             suma += C[i][j]*penalizacion(x[i],x[j]);
         }
     }
     return suma;
 }
 
+//Función para determinar si una solución sn reemplazará a la solución sc.
+//Si calidad(sn)<calidad(sc) entonces la reemplaza,
+//sino entonces verifica que exp(-delta/Temp)>aleatorio, si lo logra entonces reemplaza.
 bool evaluacion(std::vector<int> sn, std::vector<int> sc, int Temp, int** C, int E, int S){
     float c_sn = calidad(sn,C,E,S);
     float c_sc = calidad(sc,C,E,S);
@@ -288,8 +298,12 @@ bool evaluacion(std::vector<int> sn, std::vector<int> sc, int Temp, int** C, int
     else return false;
 }
 
+//Función del simulated annealing
+//crea una solución inicial y luego comienza a iterar para repararla de acuerdo
+//al algoritmo visto en clase.
+//Además le agregué otra situación de detención relacionada a que si
+//la solución no mejora luego de 5 descensos de temperatura entonces se detenga.
 auto simulatedAnnealing(int **C, int E, int S){
-
     int Temp=100;
     int contador1, contador2=0;
     bool cond1=true,cond2=true, fallo=false;
@@ -348,13 +362,14 @@ auto simulatedAnnealing(int **C, int E, int S){
     return std::make_pair(sb,calidad(sb,C,E,S));
 }
 
+//Función para crear el .sol
 void escribirSol(std::vector<int> v){
     ofstream txtOut;
     txtOut.open("./soluciones/"+instancia+".sol");//,ios::app);
     std::vector<std::stringstream> examenes (v.size());
     std::stringstream id;
     int aux;
-    for (int i=0;i<v.size();i++) {
+    for (int i=0;i<(int)v.size();i++) {
         aux = i;
         examenes[i] << std::setw(4) << std::setfill('0') << aux+1;
         txtOut << examenes[i].str()<<"\t"<<v[i]<<"\n";
@@ -362,23 +377,28 @@ void escribirSol(std::vector<int> v){
     txtOut.close();
 }
 
+//Función para crear el .res
 void escribirRes(std::vector<int> v){
     ofstream txtOut;
     txtOut.open("./soluciones/"+instancia+".res");
     int max=-1;
-    for (int i=0;i<v.size();i++) {
+    for (int i=0;i<(int)v.size();i++) {
         if(v[i]>max) max=v[i];
     }
     txtOut << max+1<<"\n";
     txtOut.close();
 }
 
+//Función para crear el .pen
 void escribirPen(std::vector<int> v, int **C, int E, int S){
     ofstream txtOut;
     txtOut.open("./soluciones/"+instancia+".pen");
     txtOut <<calidad(v,C,E,S)/S<<"\n";
     txtOut.close();
 }
+
+//Función para crear el .seg con el tiempo en segundos que demoró en procesarse el simulatedAnnealing.
+//Este archivo no lo pidieron, pero lo quise agregar igual.
 void escribirSeg(double sec){
     ofstream txtOut;
     txtOut.open("./soluciones/"+instancia+".seg");
@@ -393,16 +413,19 @@ int main(int argc, char const *argv[])
     int S,E;
     getSE(&S,&E);
 
+    //Se crea la matriz SE
     int ** matrizSE = new int*[S];
     for (int i = 0; i<S;i++)
         matrizSE[i]= new int[E];
     matrixSE(matrizSE,S,E);
 
+    //Se crea la amtriz de conflictos
     int **conflictMatrix = new int*[E];
     for(int i=0; i<E; i++)
         conflictMatrix[i] = new int[E];
     matrixC(matrizSE, conflictMatrix, S, E);
 
+    //Se obtiene la solución final
     auto sol_final = simulatedAnnealing(conflictMatrix,E,S);
 
     double segundos = (double)(clock() - inicio)/CLOCKS_PER_SEC;
@@ -411,7 +434,7 @@ int main(int argc, char const *argv[])
     
     std::vector<int> y = sol_final.first;
 
-    for(int i=0;i<y.size();i++) y.at(i)-=1;
+    for(int i=0;i<(int)y.size();i++) y.at(i)-=1;
     cout<<"Solución Final: "<<endl;
     int bloqueMax=-1;
     for (auto i : y) {
@@ -421,6 +444,8 @@ int main(int argc, char const *argv[])
     cout<<endl;
     cout<<"N° de Timeslots Solución Final: "<<bloqueMax+1<<endl;
     cout<<"Penalización Promedio Solución Final: "<<calidad(y,conflictMatrix,E,S)/S<<endl;
+    
+    //se crean los archivos pedidos.
     escribirSol(y);
     escribirRes(y);
     escribirPen(y,conflictMatrix,E,S);

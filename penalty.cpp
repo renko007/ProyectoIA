@@ -9,7 +9,7 @@
 using namespace std;
 int T;
 int INTERVALO = 1;
-string instancia ="Prueba1";//"EdHEC92";//"St.Andrews83";//"Carleton91";
+string instancia ="EdHEC92";//"EdHEC92";//"St.Andrews83";//"Carleton91";
 int max_iter1 = 3500;
 int max_iter2 = 5;
 float alpha = 0.8;
