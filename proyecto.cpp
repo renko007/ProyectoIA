@@ -13,9 +13,9 @@
 
 using namespace std;
 
-int max_iter1 = 3000;
+int max_iter1 = 3500;
 int max_iter2 = 5;
-float alpha = 0.85;
+float alpha = 0.80;
 string instancia ="EdHEC92";//"EdHEC92";//"St.Andrews83";//"Carleton91";//"LSE91";//"TorontoE92";//"Trent92";//"YorkMills83"
 
 //Función para obtener la cantidad S de estudiantes y la cantidad E de exámenes.
